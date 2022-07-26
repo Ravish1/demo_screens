@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:demo_screens/my_commons/UiHelper.dart';
 import 'package:demo_screens/my_commons/my_common_widgets.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:percent_indicator/linear_percent_indicator.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
@@ -21,6 +25,11 @@ class _FirstScreenState extends State<FirstScreen> {
   PanelController panelController = PanelController();
   PanelWidgetState? _pws;
   int panelvalue = 0;
+  static const stream =
+      const EventChannel('com.functionarylabs.eventchannelsample/stream');
+  static const platform = const MethodChannel('com.functionarylabs/start');
+  int _percentIndicatorValue = 0;
+  StreamSubscription? _timerSubscription;
 
   @override
   void initState() {
@@ -28,6 +37,8 @@ class _FirstScreenState extends State<FirstScreen> {
 
     _fabHeight = _initFabHeight;
     _pws = PanelWidgetState.WIDGET_ONE;
+    intlizeEventChannel();
+
   }
 
   @override
@@ -49,36 +60,25 @@ class _FirstScreenState extends State<FirstScreen> {
       ),
     );
   }
+
 //Here we are checking bottomsheet is opened or not if opened then change the background widget or viceversa
   showDesigns() {
-   if(panelController.isAttached&& panelController != null) {
-     if(panelController.isPanelOpen){
-      return showmyCustomHeaderLayout();
-     }
-     else if(panelController.isPanelClosed)
-     {
-       print("Pannel is Closed");
+    if (panelController.isAttached && panelController != null) {
+      if (panelController.isPanelOpen) {
+        return showmyCustomHeaderLayout();
+      } else if (panelController.isPanelClosed) {
+        print("Pannel is Closed");
+        return showourBackgroundPannelDesign();
+      } else if (panelController.isPanelShown) {
+        print("Pannel is shwoing.......");
+        return showmyCustomHeaderLayout();
+      }
+    } else {
       return showourBackgroundPannelDesign();
-
-     }
-     else if(panelController.isPanelShown){
-       print("Pannel is shwoing.......");
-       return showmyCustomHeaderLayout();
-
-
-
-     }
-
-
-}
-   else{
-     return showourBackgroundPannelDesign();
-   }
-   setState(() {
-
-   });
-
+    }
+    setState(() {});
   }
+
 //Custom bar which is shwwoing like App Bar .The reason behind not using app bar is we cant custmize app bar more then defualt actions.
   buildCustomTopBar() {
     return Container(
@@ -220,32 +220,34 @@ class _FirstScreenState extends State<FirstScreen> {
       ],
     );
   }
+
 //TO create percent indicator
   buildRadiolGauge() {
     return Center(
       child: CircularPercentIndicator(
         radius: 100.0,
-        animation: true,
-        animationDuration: 2000,
+        animation: false,
+        animationDuration: 1000,
         lineWidth: 10.0,
-        percent: 0.30,
-        reverse: true,
-        arcBackgroundColor: Colors.blue,
+        percent: _percentIndicatorValue.toDouble() / 100,
+        reverse: false,
+        arcBackgroundColor: Colors.grey,
         arcType: ArcType.FULL,
         center: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            myTextView(Colors.blue, 15, FontWeight.bold, "6,573"),
+            myTextView(Colors.blue, 15, FontWeight.bold, "$_percentIndicatorValue"),
             myTextView(Colors.blue, 15, FontWeight.bold, "Count Target")
           ],
         ),
         circularStrokeCap: CircularStrokeCap.square,
         backgroundColor: Colors.transparent,
-        progressColor: Colors.grey,
+        progressColor: Colors.blue,
       ),
     );
   }
+
 //Here we are changning bottomsheet widget according to click and backpress
   _panel(ScrollController sc) {
     if (_pws == PanelWidgetState.WIDGET_ONE) {
@@ -304,7 +306,7 @@ class _FirstScreenState extends State<FirstScreen> {
           child: Row(
             children: [
               InkWell(
-                onTap: (){
+                onTap: () {
                   onChange(PanelWidgetState.WIDGET_ONE);
                 },
                 child: Container(
@@ -350,6 +352,7 @@ class _FirstScreenState extends State<FirstScreen> {
       ],
     );
   }
+
 //Third bottomsheet Design
   Widget thirdPannel(ScrollController sc) {
     return Column(
@@ -361,9 +364,9 @@ class _FirstScreenState extends State<FirstScreen> {
           child: Row(
             children: [
               InkWell(
-                onTap: (){
+                onTap: () {
                   onChange(PanelWidgetState.WIDGET_TWO);
-                  },
+                },
                 child: Container(
                   margin: EdgeInsets.only(left: 10),
                   child: Align(
@@ -462,8 +465,7 @@ class _FirstScreenState extends State<FirstScreen> {
           margin: EdgeInsets.all(20),
           child: Card(
             color: Colors.grey[200],
-            child:
-            Padding(
+            child: Padding(
               padding: const EdgeInsets.only(bottom: 15),
               child: Column(
                 children: [
@@ -516,7 +518,6 @@ class _FirstScreenState extends State<FirstScreen> {
                         flex: 1,
                         child: textViewWithTextAlignment(Colors.black, 15,
                             FontWeight.w500, "1", TextAlign.center),
-
                       ),
                       Expanded(
                         flex: 1,
@@ -525,7 +526,6 @@ class _FirstScreenState extends State<FirstScreen> {
                       ),
                     ],
                   )
-
                 ],
               ),
             ),
@@ -534,6 +534,7 @@ class _FirstScreenState extends State<FirstScreen> {
       ],
     );
   }
+
 //Bottomsheet which we shwoing as slide widget to top
   showBottomSheett() {
     _panelHeightOpen = MediaQuery.of(context).size.height * .60;
@@ -554,6 +555,7 @@ class _FirstScreenState extends State<FirstScreen> {
       }),
     );
   }
+
 //Bottomsheet First screen
   Widget pannelOnedesign(int i) {
     return InkWell(
@@ -577,6 +579,7 @@ class _FirstScreenState extends State<FirstScreen> {
       ),
     );
   }
+
 //This Method is used to change the bottomsheet widget with click and backpress
   void onChange(PanelWidgetState widget_two) {
     if (PanelWidgetState.WIDGET_ONE == widget_two) {
@@ -590,6 +593,7 @@ class _FirstScreenState extends State<FirstScreen> {
     }
     setState(() {});
   }
+
 //Second Pannel Design
   Widget secondPannelDesign(int i) {
     return InkWell(
@@ -658,8 +662,9 @@ class _FirstScreenState extends State<FirstScreen> {
   String showDiffrence(int i) {
     return i.isEven ? "3" : "7";
   }
+
 //here when panel is closed we will show our body
-   showourBackgroundPannelDesign() {
+  showourBackgroundPannelDesign() {
     return Column(
       children: [
         buildCustomTopBar(),
@@ -694,32 +699,31 @@ class _FirstScreenState extends State<FirstScreen> {
       ],
     );
   }
+
 //this method will fire when bottomsheet is opened.
-   showmyCustomHeaderLayout() {
+  showmyCustomHeaderLayout() {
     return Column(
       children: [
-       Container(
-      height: 60,
-      
-      color: Colors.teal,
-      child: Container(
-        margin: EdgeInsets.all(15),
-        child: Row(
-          children: [
-            Expanded(child: myTextView(Colors.white, 15, FontWeight.bold, "Count Items")),
-
-
-            myTextView(Colors.white, 15, FontWeight.bold, "Submit"),
-          ],
+        Container(
+          height: 60,
+          color: Colors.teal,
+          child: Container(
+            margin: EdgeInsets.all(15),
+            child: Row(
+              children: [
+                Expanded(
+                    child: myTextView(
+                        Colors.white, 15, FontWeight.bold, "Count Items")),
+                myTextView(Colors.white, 15, FontWeight.bold, "Submit"),
+              ],
+            ),
+          ),
         ),
-      ),
-    ),
         buildseekbar(),
-
-
       ],
     );
   }
+
 //this creates the header when bottomsheet opned
   buildseekbar() {
     return Container(
@@ -730,10 +734,10 @@ class _FirstScreenState extends State<FirstScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              myTextView(Colors.black, 15, FontWeight.w500, "5781 Total Item Scanned"),
+              myTextView(
+                  Colors.black, 15, FontWeight.w500, "5781 Total Item Scanned"),
               myTextView(Colors.black, 15, FontWeight.w500, "75%"),
               UiHelper.marginTop(10),
-
             ],
           ),
           UiHelper.marginTop(10),
@@ -746,27 +750,121 @@ class _FirstScreenState extends State<FirstScreen> {
             linearStrokeCap: LinearStrokeCap.roundAll,
             progressColor: Colors.blue,
           ),
-
         ],
-
       ),
     );
   }
+
 //Here when bottomsheet collpaseed then change the header layout.
   setCollpasedWidget() {
-    if (_pws == PanelWidgetState.WIDGET_ONE)
-    {
+    if (_pws == PanelWidgetState.WIDGET_ONE) {
       return pannelHeaderLayout();
-    } else if (_pws == PanelWidgetState.WIDGET_TWO)
-    {
+    } else if (_pws == PanelWidgetState.WIDGET_TWO) {
       return secondPannelHeaderLayout();
-    }
-    else if (_pws == PanelWidgetState.WIDGET_THREE)
-    {
+    } else if (_pws == PanelWidgetState.WIDGET_THREE) {
       return new Container();
     } else {
       return pannelHeaderLayout();
     }
+  }
 
+  _onError(error) {
+    print("Something went wrong from native side or with streams" +
+        error.toString());
+  }
+
+// Fetching native data and updating through event channel
+  void _updatePercentIndicatorValue(event) {
+    print("Value from Native" + event.toString());
+    _percentIndicatorValue = event;
+    if(_percentIndicatorValue==100){
+      cancelEventChannel();
+      showAlertDialogtoUser(_percentIndicatorValue);
+    }
+    setState(() {});
+  }
+  
+
+  //here we are cancelling our events becuase current state is destroyed from widget tree
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    cancelEventChannel();
+   
+    super.dispose();
+  }
+  
+  
+
+//Intlizing Event channel
+  void intlizeEventChannel() {
+     if(_timerSubscription==null){
+       _timerSubscription = stream
+           .receiveBroadcastStream()
+           .listen(_updatePercentIndicatorValue, onError: _onError);
+     }
+
+  }
+
+  void cancelEventChannel() {
+    if (_timerSubscription != null) {
+      _timerSubscription!.cancel();
+      _timerSubscription = null;
+    }
+  }
+
+   showAlertDialogtoUser(int percentIndicatorValue) {
+    return showCupertinoDialog(
+       context: context,
+       builder: (context) {
+         return CupertinoAlertDialog(
+           title: Text("Event Channel Stream Completed"),
+           content: Text("Do you want to start again? "),
+           actions: [
+             CupertinoDialogAction(
+                 child: Text("YES"),
+                 onPressed: ()
+                 {
+                   Navigator.of(context).pop();
+                   startAgainEventChannel();
+                   setState(() {
+
+                   });
+                 }
+             ),
+             CupertinoDialogAction(
+               child: Text("NO"),
+               onPressed: (){
+                 Navigator.of(context).pop();
+                 setState(() {
+
+                 });
+               }
+               ,
+             )
+           ],
+         );
+       },
+     );
+
+  }
+
+  Future<void> startAgainEventChannel() async {
+    String response = "";
+    try {
+      final String result = await  platform.invokeMethod('start_again');
+      response = result;
+      print(result.toString());
+
+      if(response=="Started Successfully"){
+        _percentIndicatorValue=0;
+        intlizeEventChannel();
+      }
+      setState(() {
+
+      });
+    } on PlatformException catch (e) {
+      response = "Failed to Invoke: '${e.message}'.";
+    }
   }
 }
